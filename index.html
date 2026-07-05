@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viral Shorts Generator - AI Powered</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --bg-card: #151520;
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #a78bfa;
+            --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #a855f7 100%);
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border-color: #27273a;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #3b82f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo { display: flex; align-items: center; gap: 0.75rem; }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: var(--accent-gradient);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.25rem;
+        }
+        .logo-text {
+            font-size: 1.5rem; font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status-bar { display: flex; gap: 1.5rem; font-size: 0.875rem; }
+        .status-item { display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+
+        .steps-nav {
+            display: flex; justify-content: center; gap: 1rem;
+            margin-bottom: 2rem; flex-wrap: wrap;
+        }
+        .step-item {
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.875rem; font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .step-item.active { background: var(--accent-primary); color: white; border-color: var(--accent-primary); }
+        .step-item.completed { background: var(--success); color: white; border-color: var(--success); }
+        .step-number {
+            width: 24px; height: 24px; border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; font-weight: 700;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        .card-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+        .card-icon {
+            width: 48px; height: 48px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+        }
+        .card-title { font-size: 1.25rem; font-weight: 600; }
+        .card-subtitle { color: var(--text-secondary); font-size: 0.875rem; }
+
+        .input-group { margin-bottom: 1.5rem; }
+        .input-label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-secondary); }
+        .input-field {
+            width: 100%; padding: 1rem 1.25rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1rem; transition: all 0.3s ease;
+        }
+        .input-field:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(139,92,246,0.2); }
+        .input-field::placeholder { color: var(--text-muted); }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 0.5rem; padding: 1rem 2rem; border-radius: 10px;
+            font-size: 1rem; font-weight: 600; cursor: pointer;
+            transition: all 0.3s ease; border: none;
+        }
+        .btn-primary { background: var(--accent-gradient); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(139,92,246,0.4); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background: var(--border-color); }
+        .btn-success { background: var(--success); color: white; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .progress-container { margin: 1.5rem 0; }
+        .progress-bar { height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent-gradient); border-radius: 4px; transition: width 0.3s ease; }
+        .progress-text { display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary); }
+
+        .roi-container {
+            position: relative;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 1.5rem 0;
+            cursor: crosshair;
+            user-select: none;
+            border: 2px solid var(--border-color);
+        }
+        .roi-canvas { width: 100%; display: block; }
+        .roi-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+        }
+
+        .roi-box {
+            position: absolute;
+            border: 3px solid;
+            border-radius: 4px;
+            pointer-events: auto;
+            cursor: move;
+            box-sizing: border-box;
+        }
+        .roi-box.cam-0 { border-color: #ff3b3b; background: rgba(255,59,59,0.18); }
+        .roi-box.cam-1 { border-color: #00e676; background: rgba(0,230,118,0.18); }
+        .roi-box.cam-2 { border-color: #2979ff; background: rgba(41,121,255,0.18); }
+        .roi-box.cam-3 { border-color: #ffab00; background: rgba(255,171,0,0.18); }
+
+        .roi-box.cam-0:hover { box-shadow: 0 0 0 2px rgba(255,59,59,0.6); }
+        .roi-box.cam-1:hover { box-shadow: 0 0 0 2px rgba(0,230,118,0.6); }
+        .roi-box.cam-2:hover { box-shadow: 0 0 0 2px rgba(41,121,255,0.6); }
+        .roi-box.cam-3:hover { box-shadow: 0 0 0 2px rgba(255,171,0,0.6); }
+
+        .roi-label {
+            position: absolute; top: 0; left: 0;
+            padding: 3px 10px; border-radius: 0 0 6px 0;
+            font-size: 0.75rem; font-weight: 800;
+            color: white; letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .roi-box.cam-0 .roi-label { background: #ff3b3b; }
+        .roi-box.cam-1 .roi-label { background: #00c853; }
+        .roi-box.cam-2 .roi-label { background: #2962ff; }
+        .roi-box.cam-3 .roi-label { background: #ff6d00; }
+
+        .roi-delete {
+            position: absolute; top: 0; right: 0;
+            width: 22px; height: 22px;
+            background: rgba(0,0,0,0.7);
+            color: #fff; font-size: 0.8rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border-radius: 0 0 0 6px;
+            border: none; line-height: 1;
+        }
+        .roi-delete:hover { background: #ef4444; }
+
+        .resize-handle {
+            position: absolute;
+            width: 18px; height: 18px;
+            background: white;
+            border-radius: 50%;
+            bottom: -9px; right: -9px;
+            cursor: nwse-resize;
+            border: 3px solid #333;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+            pointer-events: auto;
+        }
+
+        .roi-crosshair-h, .roi-crosshair-v {
+            position: absolute; pointer-events: none;
+            background: rgba(255,255,255,0.25);
+            display: none;
+        }
+        .roi-crosshair-h { left: 0; right: 0; height: 1px; }
+        .roi-crosshair-v { top: 0; bottom: 0; width: 1px; }
+
+        .roi-hint {
+            text-align: center; padding: 0.6rem 1rem;
+            background: rgba(139,92,246,0.15);
+            border: 1px solid rgba(139,92,246,0.4);
+            border-radius: 8px; color: var(--accent-secondary);
+            font-size: 0.85rem; margin-bottom: 1rem;
+        }
+
+        .webcam-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+        .webcam-preview {
+            aspect-ratio: 9 / 16;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid var(--border-color);
+            transition: border-color 0.2s;
+        }
+        .webcam-preview.active { border-color: var(--accent-primary); }
+        .webcam-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .webcam-placeholder {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            color: var(--text-muted); gap: 0.4rem;
+            font-size: 0.75rem;
+        }
+        .webcam-number {
+            position: absolute; top: 6px; left: 6px;
+            width: 24px; height: 24px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; font-weight: 800; color: white;
+            z-index: 2;
+        }
+        .webcam-preview.cam-0 .webcam-number { background: #ff3b3b; }
+        .webcam-preview.cam-1 .webcam-number { background: #00c853; }
+        .webcam-preview.cam-2 .webcam-number { background: #2962ff; }
+        .webcam-preview.cam-3 .webcam-number { background: #ff6d00; }
+
+        .layout-preview {
+            background: var(--bg-tertiary);
+            border-radius: 12px; padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .layout-9-16 {
+            width: 200px; height: 356px;
+            margin: 0 auto; background: #000;
+            border-radius: 10px; overflow: hidden;
+            display: flex; flex-direction: column;
+            border: 2px solid #333;
+        }
+        
+        .layout-webcams {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            height: 30%; /* KAMERALAR %30 YER KAPLAR */
+            gap: 0;
+        }
+        .layout-webcam {
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.52rem; color: #eee; font-weight: 700;
+        }
+        .layout-webcam:nth-child(1) { background: rgba(239,68,68,0.40); }
+        .layout-webcam:nth-child(2) { background: rgba(34,197,94,0.40); }
+        .layout-webcam:nth-child(3) { background: rgba(59,130,246,0.40); }
+        .layout-webcam:nth-child(4) { background: rgba(245,158,11,0.40); }
+        
+        .layout-game {
+            flex: 1;
+            background: rgba(139,92,246,0.18);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.65rem; color: #ccc; font-weight: 600;
+            border-top: 1px solid #333;
+        }
+        .layout-webcam-single {
+            height: 28%;
+            background: rgba(255,59,59,0.35);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.6rem; color: #eee; font-weight: 700;
+            border-bottom: 1px solid #444;
+            position: relative;
+        }
+        .layout-webcam-single::after {
+            content: "📹 KAM 1 (Tam Görünüm)";
+        }
+
+        .clip-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1rem; margin: 1.5rem 0;
+        }
+        .clip-card {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px; overflow: hidden;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        .clip-card:hover { border-color: var(--accent-primary); }
+        .clip-card.selected { border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(139,92,246,0.3); }
+        .clip-thumbnail {
+            aspect-ratio: 16/9; background: var(--bg-secondary);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .clip-info { padding: 1rem; }
+        .clip-score {
+            display: inline-flex; align-items: center; gap: 0.25rem;
+            padding: 0.25rem 0.75rem; border-radius: 20px;
+            font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;
+        }
+        .clip-score.high { background: rgba(34,197,94,0.2); color: var(--success); }
+        .clip-score.medium { background: rgba(245,158,11,0.2); color: var(--warning); }
+        .clip-time { font-size: 0.875rem; color: var(--text-secondary); }
+        .clip-type { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .output-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem; margin: 1.5rem 0;
+        }
+        .output-card { background: var(--bg-tertiary); border-radius: 12px; overflow: hidden; }
+        .output-video { aspect-ratio: 9/16; background: #000; }
+        .output-video video { width: 100%; height: 100%; object-fit: contain; }
+        .output-info { padding: 1rem; }
+        .output-name { font-weight: 600; margin-bottom: 0.25rem; }
+        .output-meta { font-size: 0.875rem; color: var(--text-secondary); }
+
+        .section { display: none; }
+        .section.active { display: block; }
+
+        .alert {
+            padding: 1rem 1.5rem; border-radius: 10px; margin-bottom: 1rem;
+            display: flex; align-items: center; gap: 0.75rem;
+        }
+        .alert-error { background: rgba(239,68,68,0.1); border: 1px solid var(--error); color: var(--error); }
+        .alert-success { background: rgba(34,197,94,0.1); border: 1px solid var(--success); color: var(--success); }
+
+        .checkbox-group {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 1rem; background: var(--bg-tertiary);
+            border-radius: 10px; margin-bottom: 0.75rem;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        .checkbox-group:hover { background: var(--border-color); }
+        .checkbox-group input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent-primary); }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .header { padding: 1rem; flex-direction: column; gap: 1rem; }
+            .webcam-strip { grid-template-columns: repeat(2, 1fr); }
+            .clip-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="logo">
+        <div class="logo-icon">🎬</div>
+        <div class="logo-text">Viral Shorts Generator</div>
+    </div>
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-dot"></span>
+            <span id="server-status">Bağlantı kontrol ediliyor...</span>
+        </div>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="steps-nav">
+        <div class="step-item active" id="step-1-nav"><span class="step-number">1</span><span>Video İndir</span></div>
+        <div class="step-item" id="step-2-nav"><span class="step-number">2</span><span>Webcam ROI</span></div>
+        <div class="step-item" id="step-3-nav"><span class="step-number">3</span><span>AI Analiz</span></div>
+        <div class="step-item" id="step-4-nav"><span class="step-number">4</span><span>Shorts Üret</span></div>
+    </div>
+
+    <div id="alert-container"></div>
+
+    <div class="section active" id="step-1">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">🔗</div>
+                <div>
+                    <div class="card-title">Video Kaynağı</div>
+                    <div class="card-subtitle">YouTube veya Kick video linkini yapıştırın — Ultra HD kalitede indirilir</div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Video URL</label>
+                <input type="text" class="input-field" id="video-url"
+                       placeholder="https://youtube.com/watch?v=... veya https://kick.com/...">
+            </div>
+
+            <button class="btn btn-primary" id="download-btn" onclick="downloadVideo()">
+                <span>⬇️</span><span>Ultra HD İndir</span>
+            </button>
+
+            <div class="progress-container" id="download-progress" style="display:none;">
+                <div class="progress-bar"><div class="progress-fill" id="download-progress-bar" style="width:0%"></div></div>
+                <div class="progress-text">
+                    <span id="download-status">İndiriliyor...</span>
+                    <span id="download-percent">0%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section" id="step-2">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">📹</div>
+                <div>
+                    <div class="card-title">Webcam ROI Seçimi</div>
+                    <div class="card-subtitle">Görüntü üzerinde 4 webcam alanını çizin</div>
+                </div>
+            </div>
+
+            <div class="roi-hint" id="roi-hint">
+                💡 Tek kamera çizin — üstte tam genişlikte webcam, altta geniş oyun alanı olur. 2-4 kamera için 2×2 grid layout kullanılır.
+            </div>
+
+            <div class="roi-container" id="roi-container">
+                <img id="preview-image" class="roi-canvas" style="display:none;" draggable="false">
+                <div class="roi-overlay" id="roi-overlay"></div>
+                <div class="roi-crosshair-h" id="crosshair-h"></div>
+                <div class="roi-crosshair-v" id="crosshair-v"></div>
+            </div>
+
+            <div class="layout-preview">
+                <div style="text-align:center; margin-bottom:1rem; color:var(--text-secondary); font-size:0.875rem;">
+                    📱 Çıktı Layout'u — Gerçek 9:16 (1080×1920)
+                </div>
+                <div class="layout-9-16">
+                    <div class="layout-webcams">
+                        <div class="layout-webcam">KAM 1</div>
+                        <div class="layout-webcam">KAM 2</div>
+                        <div class="layout-webcam">KAM 3</div>
+                        <div class="layout-webcam">KAM 4</div>
+                    </div>
+                    <div class="layout-game">🎮 OYUN (Geniş Alan)</div>
+                </div>
+                <div style="text-align:center; margin-top:0.75rem; font-size:0.75rem; color:var(--text-muted);">
+                    Üst: 2×2 webcam grid (540×288 her hücre) &nbsp;|&nbsp; Alt: Oyun alanı (1080×1344)
+                </div>
+            </div>
+
+            <div style="margin-bottom:0.5rem; font-size:0.875rem; color:var(--text-secondary);">Seçilen Webcam Alanları</div>
+            <div class="webcam-strip">
+                <div class="webcam-preview cam-0" id="cam-0">
+                    <div class="webcam-number">1</div>
+                    <div class="webcam-placeholder"><span>📹</span><span>Kamera 1</span></div>
+                </div>
+                <div class="webcam-preview cam-1" id="cam-1">
+                    <div class="webcam-number">2</div>
+                    <div class="webcam-placeholder"><span>📹</span><span>Kamera 2</span></div>
+                </div>
+                <div class="webcam-preview cam-2" id="cam-2">
+                    <div class="webcam-number">3</div>
+                    <div class="webcam-placeholder"><span>📹</span><span>Kamera 3</span></div>
+                </div>
+                <div class="webcam-preview cam-3" id="cam-3">
+                    <div class="webcam-number">4</div>
+                    <div class="webcam-placeholder"><span>📹</span><span>Kamera 4</span></div>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:1rem; margin-top:1rem;">
+                <button class="btn btn-secondary" onclick="resetROIs()">🔄 Sıfırla</button>
+                <button class="btn btn-primary" onclick="goToStep(3)">✓ Devam Et</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section" id="step-3">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">🤖</div>
+                <div>
+                    <div class="card-title">AI Viral Analizi</div>
+                    <div class="card-subtitle">Yapay zeka viral anları tespit ediyor</div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="analyze-btn" onclick="analyzeVideo()">
+                <span>🔍</span><span>Viral Anları Bul</span>
+            </button>
+
+            <div class="progress-container" id="analyze-progress" style="display:none;">
+                <div class="progress-bar"><div class="progress-fill" id="analyze-progress-bar" style="width:0%"></div></div>
+                <div class="progress-text">
+                    <span id="analyze-status">Analiz başlıyor...</span>
+                    <span id="analyze-percent">0%</span>
+                </div>
+            </div>
+
+            <div id="clips-container" style="display:none;">
+                <div style="margin:1.5rem 0 1rem; display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="font-size:1.125rem;">Tespit Edilen Viral Anlar</h3>
+                    <button class="btn btn-secondary" onclick="selectAllClips()">Tümünü Seç</button>
+                </div>
+                <div class="clip-grid" id="clip-grid"></div>
+                <button class="btn btn-primary" style="width:100%; margin-top:1rem;" onclick="goToStep(4)">
+                    <span>⚡</span><span>Shorts Üretmeye Başla</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section" id="step-4">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">✨</div>
+                <div>
+                    <div class="card-title">Shorts Üretimi</div>
+                    <div class="card-subtitle">Seçili viral anlardan mükemmel 9:16 shorts oluştur</div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Çıktı Formatı</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="output-shorts" checked>
+                    <label for="output-shorts" style="cursor:pointer;">
+                        <strong>9:16 Shorts</strong> — TikTok, YouTube Shorts, Reels için
+                    </label>
+                </div>
+            </div>
+
+            <!-- Tek kamera ayarları (sadece 1 webcam seçilince görünür) -->
+            <div id="single-cam-settings" style="display:none; background:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:12px; padding:1.25rem; margin-bottom:1.25rem;">
+                <div style="font-weight:600; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
+                    <span>🎥</span><span>Tek Kamera Ayarları</span>
+                    <span style="font-size:0.75rem; color:var(--accent-secondary); background:rgba(139,92,246,0.15); padding:2px 8px; border-radius:20px;">smart_shorts uyumlu</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+                    <div>
+                        <label class="input-label" style="font-size:0.8rem;">Webcam yüksekliği (%)</label>
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <input type="range" id="top-ratio-slider" min="20" max="70" value="42"
+                                   style="flex:1; accent-color:var(--accent-primary);"
+                                   oninput="document.getElementById('top-ratio-val').textContent=this.value+'%'">
+                            <span id="top-ratio-val" style="font-size:0.85rem; font-weight:700; color:var(--accent-secondary); min-width:36px;">42%</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:0.6rem;">
+                    <label style="display:flex; align-items:center; gap:0.75rem; cursor:pointer;">
+                        <input type="checkbox" id="chk-mask" checked style="width:18px;height:18px;accent-color:var(--accent-primary);">
+                        <span style="font-size:0.875rem;"><strong>Oyun içi webcam'i gizle</strong> — blur patch ile siler</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:0.75rem; cursor:pointer;">
+                        <input type="checkbox" id="chk-ae" checked style="width:18px;height:18px;accent-color:var(--accent-primary);">
+                        <span style="font-size:0.875rem;"><strong>After Effects tarzı</strong> — shadow, beyaz çerçeve, renk düzeltme</span>
+                    </label>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="generate-btn" onclick="generateShorts()">
+                <span>🎬</span><span>Shorts Üret</span>
+            </button>
+
+            <div class="progress-container" id="generate-progress" style="display:none;">
+                <div class="progress-bar"><div class="progress-fill" id="generate-progress-bar" style="width:0%"></div></div>
+                <div class="progress-text">
+                    <span id="generate-status">İşleniyor...</span>
+                    <span id="generate-percent">0%</span>
+                </div>
+            </div>
+
+            <div id="outputs-container" style="display:none; margin-top:2rem;">
+                <h3 style="font-size:1.125rem; margin-bottom:1rem;">Üretilen Shorts</h3>
+                <div class="output-grid" id="output-grid"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+let currentJob    = null;
+let videoPath     = null;
+let videoDuration = 0;
+let webcams       = [];
+let selectedClips = [];
+let detectedClips = [];
+
+document.addEventListener('DOMContentLoaded', () => { checkHealth(); });
+
+async function checkHealth() {
+    try {
+        const r = await fetch('/api/health');
+        const d = await r.json();
+        const el = document.getElementById('server-status');
+        el.textContent = (d.ffmpeg_installed && d.ytdlp_installed) ? 'Sistem Hazır ✅' : '⚠️ Bağımlılıklar eksik!';
+    } catch {
+        document.getElementById('server-status').textContent = '❌ Bağlantı hatası';
+    }
+}
+
+function showAlert(msg, type='error') {
+    const c = document.getElementById('alert-container');
+    const a = document.createElement('div');
+    a.className = `alert alert-${type}`;
+    a.innerHTML = `<span>${type==='error'?'❌':'✅'}</span><span>${msg}</span>`;
+    c.appendChild(a);
+    setTimeout(() => a.remove(), 5000);
+}
+
+function goToStep(step) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.step-item').forEach(s => s.classList.remove('active'));
+    document.getElementById(`step-${step}`).classList.add('active');
+    document.getElementById(`step-${step}-nav`).classList.add('active');
+    for (let i=1; i<step; i++) document.getElementById(`step-${i}-nav`).classList.add('completed');
+}
+
+async function downloadVideo() {
+    const url = document.getElementById('video-url').value.trim();
+    if (!url) { showAlert('Lütfen bir video URL girin'); return; }
+
+    const btn  = document.getElementById('download-btn');
+    const prog = document.getElementById('download-progress');
+    const bar  = document.getElementById('download-progress-bar');
+    const stat = document.getElementById('download-status');
+    const pct  = document.getElementById('download-percent');
+
+    btn.disabled = true;
+    prog.style.display = 'block';
+
+    try {
+        const res  = await fetch('/api/download', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url}) });
+        const data = await res.json();
+        currentJob = data.job_id;
+
+        const poll = setInterval(async () => {
+            const jr   = await fetch(`/api/job/${currentJob}`);
+            const job  = await jr.json();
+            bar.style.width  = `${job.progress}%`;
+            stat.textContent = job.message;
+            pct.textContent  = `${job.progress}%`;
+
+            if (job.status === 'completed') {
+                clearInterval(poll);
+                videoPath     = job.video_path;
+                videoDuration = job.duration;
+                btn.disabled  = false;
+                showAlert(`Video indirildi! (${job.width}×${job.height})`, 'success');
+                loadPreview();
+                goToStep(2);
+            } else if (job.status === 'error') {
+                clearInterval(poll);
+                btn.disabled = false;
+                showAlert('İndirme hatası: ' + job.message);
+            }
+        }, 1000);
+    } catch(e) {
+        btn.disabled = false;
+        showAlert('İndirme başarısız: ' + e.message);
+    }
+}
+
+async function loadPreview() {
+    if (!videoPath) return;
+    const ts = Math.min(600, videoDuration / 2);
+    try {
+        const res  = await fetch('/api/preview', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({video_path:videoPath, timestamp:ts}) });
+        const data = await res.json();
+        const img  = document.getElementById('preview-image');
+        img.src    = data.image;
+        img.style.display = 'block';
+        img.onload = () => setupROICanvas();
+    } catch(e) {
+        console.error('Preview error:', e);
+    }
+}
+
+function setupROICanvas() {
+    const c  = document.getElementById('roi-container');
+    const fresh = c.cloneNode(true);
+    c.parentNode.replaceChild(fresh, c);
+    const container = document.getElementById('roi-container');
+
+    let drawing = false, dragging = false, resizing = false;
+    let dIdx = -1, rIdx = -1;
+    let sx = 0, sy = 0, offX = 0, offY = 0;
+
+    function pos(e) {
+        const r = container.getBoundingClientRect();
+        return {
+            px: Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width)  * 100)),
+            py: Math.max(0, Math.min(100, ((e.clientY - r.top)  / r.height) * 100))
+        };
+    }
+
+    function resizeIdx(px, py) {
+        const TOL = 3.5;
+        for (let i = webcams.length - 1; i >= 0; i--) {
+            const c = webcams[i];
+            if (Math.abs(px - (c.x + c.width)) < TOL &&
+                Math.abs(py - (c.y + c.height)) < TOL) return i;
+        }
+        return -1;
+    }
+
+    function roiIdx(px, py) {
+        for (let i = webcams.length - 1; i >= 0; i--) {
+            const c = webcams[i];
+            const inBox = px >= c.x && px <= c.x + c.width &&
+                          py >= c.y && py <= c.y + c.height;
+            if (!inBox) continue;
+            const nearRight = px > c.x + c.width  - 5;
+            const nearTop   = py < c.y             + 5;
+            if (nearRight && nearTop) continue;
+            return i;
+        }
+        return -1;
+    }
+
+    container.addEventListener('mousemove', e => {
+        const {px, py} = pos(e);
+        if (!drawing && !dragging && !resizing) {
+            const chEl = document.getElementById('crosshair-h');
+            const cvEl = document.getElementById('crosshair-v');
+            if (chEl) { chEl.style.display = 'block'; chEl.style.top  = `${py}%`; }
+            if (cvEl) { cvEl.style.display = 'block'; cvEl.style.left = `${px}%`; }
+        }
+
+        if (resizing && rIdx >= 0) {
+            const cam = webcams[rIdx];
+            cam.width  = Math.max(4, px - cam.x);
+            cam.height = Math.max(4, py - cam.y);
+            renderROIs();
+            updateWebcamPreviews();
+        } else if (dragging && dIdx >= 0) {
+            const cam = webcams[dIdx];
+            cam.x = Math.max(0, Math.min(100 - cam.width,  px - offX));
+            cam.y = Math.max(0, Math.min(100 - cam.height, py - offY));
+            renderROIs();
+            updateWebcamPreviews();
+        } else if (drawing) {
+            renderROIs();
+            const overlay = document.getElementById('roi-overlay');
+            const ghost = document.createElement('div');
+            ghost.className = `roi-box cam-${webcams.length}`;
+            ghost.style.cssText = `
+                left:${Math.min(sx,px)}%; top:${Math.min(sy,py)}%;
+                width:${Math.abs(px-sx)}%; height:${Math.abs(py-sy)}%;
+                pointer-events:none; opacity:0.8;`;
+            ghost.innerHTML = `<div class="roi-label">KAM ${webcams.length + 1}</div>`;
+            overlay.appendChild(ghost);
+        }
+    });
+
+    container.addEventListener('mouseleave', () => {
+        const chEl = document.getElementById('crosshair-h');
+        const cvEl = document.getElementById('crosshair-v');
+        if (chEl) chEl.style.display = 'none';
+        if (cvEl) cvEl.style.display = 'none';
+    });
+
+    container.addEventListener('mousedown', e => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        const {px, py} = pos(e);
+
+        const ri = resizeIdx(px, py);
+        if (ri >= 0) { resizing = true; rIdx = ri; return; }
+
+        const di = roiIdx(px, py);
+        if (di >= 0) {
+            dragging = true; dIdx = di;
+            offX = px - webcams[di].x;
+            offY = py - webcams[di].y;
+            return;
+        }
+
+        if (webcams.length < 4) {
+            drawing = true; sx = px; sy = py;
+        }
+    });
+
+    container.addEventListener('mouseup', e => {
+        if (drawing) {
+            const {px, py} = pos(e);
+            const w = Math.abs(px - sx);
+            const h = Math.abs(py - sy);
+            if (w > 2 && h > 2) {
+                webcams.push({ x: Math.min(sx,px), y: Math.min(sy,py), width: w, height: h });
+            }
+        }
+        drawing = dragging = resizing = false;
+        dIdx = rIdx = -1;
+        renderROIs();
+        updateWebcamPreviews();
+    });
+
+    const toMouse = (te, type) => {
+        const t = te.touches[0] || te.changedTouches[0];
+        container.dispatchEvent(new MouseEvent(type, { clientX:t.clientX, clientY:t.clientY, bubbles:true }));
+    };
+    container.addEventListener('touchstart', e => { e.preventDefault(); toMouse(e,'mousedown'); }, {passive:false});
+    container.addEventListener('touchmove',  e => { e.preventDefault(); toMouse(e,'mousemove'); }, {passive:false});
+    container.addEventListener('touchend',   e => { e.preventDefault(); toMouse(e,'mouseup'); },   {passive:false});
+}
+
+function renderROIs() {
+    const overlay = document.getElementById('roi-overlay');
+    if (!overlay) return;
+    overlay.innerHTML = '';
+    webcams.forEach((cam, i) => {
+        const box = document.createElement('div');
+        box.className = `roi-box cam-${i}`;
+        box.style.cssText = `left:${cam.x}%;top:${cam.y}%;width:${cam.width}%;height:${cam.height}%`;
+        box.innerHTML = `
+            <div class="roi-label">KAM ${i+1} — ${cam.width.toFixed(0)}%×${cam.height.toFixed(0)}%</div>
+            <button class="roi-delete" onclick="deleteROI(${i})" title="Sil">✕</button>
+            <div class="resize-handle"></div>`;
+        overlay.appendChild(box);
+    });
+    updateLayoutPreview();
+}
+
+function updateLayoutPreview() {
+    const layoutWebcams = document.getElementById('layout-webcams');
+    const layoutGame    = document.getElementById('layout-game');
+    const layoutDesc    = document.getElementById('layout-desc');
+    const hintEl        = document.getElementById('roi-hint');
+    if (!layoutWebcams) return;
+
+    // Tek kamera ayarları paneli göster/gizle
+    const singleSettings = document.getElementById('single-cam-settings');
+    if (singleSettings) singleSettings.style.display = webcams.length === 1 ? 'block' : 'none';
+
+    if (webcams.length === 1) {
+        // Single cam: replace 2x2 grid with full-width webcam bar
+        layoutWebcams.style.display = 'none';
+        if (!document.getElementById('layout-single-cam')) {
+            const single = document.createElement('div');
+            single.id = 'layout-single-cam';
+            single.className = 'layout-webcam-single';
+            layoutWebcams.parentNode.insertBefore(single, layoutWebcams);
+        }
+        if (layoutGame) { layoutGame.style.height = '72%'; layoutGame.style.flex = 'none'; }
+        if (layoutDesc) layoutDesc.textContent = 'Üst: Webcam tam görünüm (1080×540) | Alt: Oyun alanı (1080×1380)';
+        if (hintEl) hintEl.innerHTML = '✅ Tek kamera seçildi — Üstte tam webcam görünümü, altta geniş oyun alanı olacak.';
+    } else {
+        // Multi cam: restore 2x2 grid
+        const single = document.getElementById('layout-single-cam');
+        if (single) single.remove();
+        layoutWebcams.style.display = 'grid';
+        if (layoutGame) { layoutGame.style.height = ''; layoutGame.style.flex = '1'; }
+        if (layoutDesc) layoutDesc.textContent = webcams.length === 0
+            ? 'Kamera çizmeden devam ederseniz sadece oyun alanı çıktı olur'
+            : 'Üst: 2×2 webcam grid (540×288 her hücre) | Alt: Oyun alanı (1080×1344)';
+        if (hintEl) hintEl.innerHTML = webcams.length === 0
+            ? '💡 Tek kamera çizin — üstte tam genişlikte webcam, altta geniş oyun alanı olur. 2-4 kamera için 2×2 grid layout kullanılır.'
+            : `✅ ${webcams.length} kamera seçildi — 2×2 grid layout kullanılacak.`;
+    }
+}
+
+function deleteROI(idx) {
+    webcams.splice(idx, 1);
+    renderROIs();
+    updateWebcamPreviews();
+    for (let i = webcams.length; i < 4; i++) {
+        const p = document.getElementById(`cam-${i}`);
+        if (p) {
+            p.classList.remove('active');
+            p.innerHTML = `<div class="webcam-number">${i+1}</div>
+                <div class="webcam-placeholder"><span>📹</span><span>Kamera ${i+1}</span></div>`;
+        }
+    }
+}
+
+function updateWebcamPreviews() {
+    const img = document.getElementById('preview-image');
+    webcams.forEach((cam, i) => {
+        const preview = document.getElementById(`cam-${i}`);
+        if (!preview) return;
+        preview.classList.add('active');
+
+        if (!img || !img.src || img.naturalWidth === 0) return;
+
+        const PW = 270, PH = 480;
+        const canvas = document.createElement('canvas');
+        canvas.width = PW; canvas.height = PH;
+        const ctx = canvas.getContext('2d');
+
+        const iw = img.naturalWidth, ih = img.naturalHeight;
+        const sx = iw * cam.x      / 100;
+        const sy = ih * cam.y      / 100;
+        const sw = Math.max(1, iw * cam.width  / 100);
+        const sh = Math.max(1, ih * cam.height / 100);
+
+        const scale = Math.max(PW / sw, PH / sh);
+        const dw = sw * scale, dh = sh * scale;
+        const dx = (PW - dw) / 2, dy = (PH - dh) / 2;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, PW, PH);
+        ctx.clip();
+        ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+        ctx.restore();
+
+        preview.innerHTML = `<div class="webcam-number">${i+1}</div>`;
+        const ci = document.createElement('img');
+        ci.src = canvas.toDataURL('image/jpeg', 0.85);
+        ci.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        preview.appendChild(ci);
+    });
+}
+
+function resetROIs() {
+    webcams = [];
+    renderROIs();
+    updateLayoutPreview();
+    for (let i=0; i<4; i++) {
+        const p = document.getElementById(`cam-${i}`);
+        if (!p) continue;
+        p.classList.remove('active');
+        p.innerHTML = `<div class="webcam-number">${i+1}</div><div class="webcam-placeholder"><span>📹</span><span>Kamera ${i+1}</span></div>`;
+    }
+}
+
+async function analyzeVideo() {
+    if (!videoPath) { showAlert('Önce video indirin'); return; }
+
+    const btn  = document.getElementById('analyze-btn');
+    const prog = document.getElementById('analyze-progress');
+    const bar  = document.getElementById('analyze-progress-bar');
+    const stat = document.getElementById('analyze-status');
+    const pct  = document.getElementById('analyze-percent');
+    const cont = document.getElementById('clips-container');
+
+    btn.disabled = true;
+    prog.style.display = 'block';
+    cont.style.display = 'none';
+
+    try {
+        const res  = await fetch('/api/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({video_path:videoPath}) });
+        const data = await res.json();
+
+        const poll = setInterval(async () => {
+            const jr  = await fetch(`/api/job/${data.job_id}`);
+            const job = await jr.json();
+            bar.style.width  = `${job.progress}%`;
+            stat.textContent = job.message;
+            pct.textContent  = `${job.progress}%`;
+
+            if (job.status === 'completed') {
+                clearInterval(poll);
+                btn.disabled = false;
+                detectedClips = job.clips;
+                renderClips();
+                cont.style.display = 'block';
+                showAlert(`${job.clips.length} viral an bulundu!`, 'success');
+            } else if (job.status === 'error') {
+                clearInterval(poll);
+                btn.disabled = false;
+                showAlert('Analiz hatası: ' + job.message);
+            }
+        }, 1000);
+    } catch(e) {
+        btn.disabled = false;
+        showAlert('Analiz başarısız: ' + e.message);
+    }
+}
+
+function renderClips() {
+    const grid = document.getElementById('clip-grid');
+    grid.innerHTML = '';
+    detectedClips.forEach((clip, i) => {
+        const card = document.createElement('div');
+        card.className = 'clip-card';
+        card.dataset.index = i;
+        card.onclick = () => toggleClip(i);
+        const scoreClass = clip.viral_score >= 85 ? 'high' : 'medium';
+        const mins = Math.floor(clip.timestamp/60);
+        const secs = (clip.timestamp%60).toString().padStart(2,'0');
+        card.innerHTML = `
+            <div class="clip-thumbnail">
+                <span style="font-size:3rem">${getClipEmoji(clip.type)}</span>
+            </div>
+            <div class="clip-info">
+                <div class="clip-score ${scoreClass}"><span>🔥</span><span>${clip.viral_score}% Viral</span></div>
+                <div class="clip-time">${mins}:${secs} &mdash; ${clip.duration}s</div>
+                <div class="clip-type">${clip.type}</div>
+            </div>`;
+        grid.appendChild(card);
+    });
+}
+
+const CLIP_EMOJIS = { laughter:'😂', excitement:'🤩', reaction:'😲', scream:'😱', funny:'🤣', viral:'🔥' };
+function getClipEmoji(t) { return CLIP_EMOJIS[t] || '🎬'; }
+
+function toggleClip(i) {
+    const card = document.querySelector(`.clip-card[data-index="${i}"]`);
+    const clip = detectedClips[i];
+    if (selectedClips.includes(clip)) {
+        selectedClips = selectedClips.filter(c => c !== clip);
+        card.classList.remove('selected');
+    } else {
+        selectedClips.push(clip);
+        card.classList.add('selected');
+    }
+}
+
+function selectAllClips() {
+    selectedClips = [...detectedClips];
+    document.querySelectorAll('.clip-card').forEach(c => c.classList.add('selected'));
+}
+
+async function generateShorts() {
+    if (selectedClips.length === 0) { showAlert('Lütfen en az bir klip seçin'); return; }
+
+    const btn  = document.getElementById('generate-btn');
+    const prog = document.getElementById('generate-progress');
+    const bar  = document.getElementById('generate-progress-bar');
+    const stat = document.getElementById('generate-status');
+    const pct  = document.getElementById('generate-percent');
+    const out  = document.getElementById('outputs-container');
+
+    btn.disabled = true;
+    prog.style.display = 'block';
+    out.style.display  = 'none';
+
+    try {
+        const res  = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+                video_path:   videoPath,
+                clips:        selectedClips,
+                webcams:      webcams,
+                top_ratio:    webcams.length === 1 ? parseInt(document.getElementById('top-ratio-slider')?.value || 42) / 100 : 0.42,
+                mask_gameplay: webcams.length === 1 ? (document.getElementById('chk-mask')?.checked ?? true) : true,
+                ae_style:     webcams.length === 1 ? (document.getElementById('chk-ae')?.checked ?? true)   : true
+            })
+        });
+        const data = await res.json();
+
+        const poll = setInterval(async () => {
+            const jr  = await fetch(`/api/job/${data.job_id}`);
+            const job = await jr.json();
+            bar.style.width  = `${job.progress}%`;
+            stat.textContent = job.message;
+            pct.textContent  = `${job.progress}%`;
+
+            if (job.status === 'completed') {
+                clearInterval(poll);
+                btn.disabled = false;
+                renderOutputs(job.outputs);
+                out.style.display = 'block';
+                showAlert(`${job.outputs.length} shorts üretildi! ✅`, 'success');
+            } else if (job.status === 'error') {
+                clearInterval(poll);
+                btn.disabled = false;
+                showAlert('Üretim hatası: ' + job.message);
+            }
+        }, 1000);
+    } catch(e) {
+        btn.disabled = false;
+        showAlert('Üretim başarısız: ' + e.message);
+    }
+}
+
+function renderOutputs(outputs) {
+    const grid = document.getElementById('output-grid');
+    grid.innerHTML = '';
+    outputs.forEach((output, i) => {
+        const card = document.createElement('div');
+        card.className = 'output-card';
+        card.innerHTML = `
+            <div class="output-video">
+                <video controls>
+                    <source src="${output.url}" type="video/mp4">
+                </video>
+            </div>
+            <div class="output-info">
+                <div class="output-name">Short ${i+1}</div>
+                <div class="output-meta">${output.duration}s &bull; ${output.size}</div>
+                <a href="${output.url}" download class="btn btn-primary" style="width:100%; margin-top:0.5rem; padding:0.6rem;">
+                    <span>⬇️</span><span>İndir</span>
+                </a>
+            </div>`;
+        grid.appendChild(card);
+    });
+}
+</script>
+</body>
+</html>
