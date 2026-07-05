@@ -503,19 +503,49 @@ def create_perfect_layout(input_path, output_path, start_time, duration, webcams
         rel_output
     ]
 
+    _run_ffmpeg_cmd(cmd, output_path, "çoklu kamera")
+
+
+import signal as _signal_mod
+
+def _run_ffmpeg_cmd(cmd, output_path, label, timeout=180):
+    """
+    Ortak ffmpeg çalıştırma + hata teşhis yardımcı fonksiyonu.
+    Orijinal render mantığına dokunmaz; sadece çalıştırma/hata raporlamayı merkezileştirir.
+    """
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR),
-                                 stdin=subprocess.DEVNULL, timeout=180)
+                                 stdin=subprocess.DEVNULL, timeout=timeout)
     except subprocess.TimeoutExpired:
-        raise Exception("FFmpeg hatası: işlem zaman aşımına uğradı (180sn) - "
-                         "kaynak video bozuk olabilir veya arama noktasında sorun var.")
+        raise Exception(f"FFmpeg hatası ({label}): işlem zaman aşımına uğradı ({timeout}sn) - "
+                         f"kaynak video bozuk olabilir veya arama noktasında sorun var.")
 
     if result.returncode != 0:
-        err = (result.stderr or "").strip() or "(ffmpeg boş hata döndürdü, dosya bozuk olabilir)"
-        raise Exception(f"FFmpeg hatası: {err[-800:]}")
+        stderr_txt = (result.stderr or "").strip()
+        stdout_txt = (result.stdout or "").strip()
+        if result.returncode < 0:
+            try:
+                sig_name = _signal_mod.Signals(-result.returncode).name
+            except Exception:
+                sig_name = str(-result.returncode)
+            detail = (
+                f"ffmpeg bir sinyal ile dıştan sonlandırıldı (SIG{sig_name}, kod {result.returncode}). "
+                f"Bu genellikle SUNUCUDA YETERSİZ RAM (OOM Killer) veya işletim sistemi/servis "
+                f"gözetleyicisinin (watchdog) süreci öldürmesinden kaynaklanır. "
+                f"Sunucunun boş RAM/swap durumunu ve `dmesg | grep -i oom` / `journalctl -k | grep -i oom` "
+                f"çıktısını kontrol edin."
+            )
+        else:
+            detail = stderr_txt or stdout_txt or (
+                f"ffmpeg dönüş kodu {result.returncode} ile başarısız oldu ancak hiçbir hata metni üretmedi "
+                f"(disk dolu olabilir, dosya izinleri hatalı olabilir ya da kaynak dosya bozuk olabilir)."
+            )
+        raise Exception(f"FFmpeg hatası ({label}): {detail[-800:]}")
+
     if not os.path.exists(output_path) or os.path.getsize(output_path) < 1024:
-        raise Exception("FFmpeg hatası: çıktı dosyası oluşmadı veya boş "
-                         "(seçilen zaman aralığı video süresini aşıyor olabilir).")
+        raise Exception(f"FFmpeg hatası ({label}): çıktı dosyası oluşmadı veya boş "
+                         f"(seçilen zaman aralığı video süresini aşıyor olabilir).")
+    return result
 
 
 def create_single_webcam_layout(input_path, output_path, start_time, duration, webcam,
@@ -648,19 +678,7 @@ def create_single_webcam_layout(input_path, output_path, start_time, duration, w
         rel_output
     ]
 
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR),
-                                 stdin=subprocess.DEVNULL, timeout=180)
-    except subprocess.TimeoutExpired:
-        raise Exception("FFmpeg hatası (tek kamera): işlem zaman aşımına uğradı (180sn) - "
-                         "kaynak video bozuk olabilir veya arama noktasında sorun var.")
-
-    if result.returncode != 0:
-        err = (result.stderr or "").strip() or "(ffmpeg boş hata döndürdü, dosya bozuk olabilir)"
-        raise Exception(f"FFmpeg hatası (tek kamera): {err[-800:]}")
-    if not os.path.exists(output_path) or os.path.getsize(output_path) < 1024:
-        raise Exception("FFmpeg hatası (tek kamera): çıktı dosyası oluşmadı veya boş "
-                         "(seçilen zaman aralığı video süresini aşıyor olabilir).")
+    _run_ffmpeg_cmd(cmd, output_path, "tek kamera")
 
 
 def extract_game_only(input_path, output_path, start_time, duration):
@@ -711,19 +729,7 @@ def extract_game_only(input_path, output_path, start_time, duration):
         rel_output
     ]
 
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR),
-                                 stdin=subprocess.DEVNULL, timeout=180)
-    except subprocess.TimeoutExpired:
-        raise Exception("Video üretim hatası: işlem zaman aşımına uğradı (180sn) - "
-                         "kaynak video bozuk olabilir veya arama noktasında sorun var.")
-
-    if result.returncode != 0:
-        err = (result.stderr or "").strip() or "(ffmpeg boş hata döndürdü, dosya bozuk olabilir)"
-        raise Exception(f"Video üretim hatası: {err[-800:]}")
-    if not os.path.exists(output_path) or os.path.getsize(output_path) < 1024:
-        raise Exception("Video üretim hatası: çıktı dosyası oluşmadı veya boş "
-                         "(seçilen zaman aralığı video süresini aşıyor olabilir).")
+    _run_ffmpeg_cmd(cmd, output_path, "webcamsız")
 
 
 @app.route('/api/download/<filename>')
