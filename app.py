@@ -382,17 +382,26 @@ def create_perfect_layout(input_path, output_path, start_time, duration, webcams
 
     probe = subprocess.run(
         ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
-         '-show_entries', 'stream=width,height', '-of', 'json', rel_input],
+         '-show_entries', 'stream=width,height:format=duration', '-of', 'json', rel_input],
         capture_output=True, text=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL
     )
     orig_w, orig_h = 1920, 1080
+    total_duration = None
     try:
         info = json.loads(probe.stdout)
         if info.get('streams'):
             orig_w = info['streams'][0].get('width',  1920)
             orig_h = info['streams'][0].get('height', 1080)
+        if info.get('format', {}).get('duration'):
+            total_duration = float(info['format']['duration'])
     except Exception:
         pass
+
+    start_time = max(0, float(start_time))
+    duration = max(1, float(duration))
+    if total_duration and total_duration > 1:
+        start_time = min(start_time, max(0, total_duration - 1))
+        duration = min(duration, max(1, total_duration - start_time))
 
     def cover_dims(src_w, src_h, tw, th):
         scale = max(tw / src_w, th / src_h)
@@ -467,11 +476,16 @@ def create_perfect_layout(input_path, output_path, start_time, duration, webcams
 
     filter_complex = ";".join(parts)
 
+    SEEK_BUFFER = 3.0
+    pre_seek = max(0.0, start_time - SEEK_BUFFER)
+    accurate_offset = start_time - pre_seek
+
     cmd = [
-        'ffmpeg', '-y', '-nostdin',
-        '-ss', str(max(0, start_time)),
-        '-t',  str(duration),
+        'ffmpeg', '-y', '-nostdin', '-nostats', '-loglevel', 'error',
+        '-ss', str(pre_seek),
         '-i',  rel_input,
+        '-ss', str(accurate_offset),
+        '-t',  str(duration),
         '-filter_complex', filter_complex,
         '-map', '[final]',
         '-map', '0:a?',
@@ -489,10 +503,19 @@ def create_perfect_layout(input_path, output_path, start_time, duration, webcams
         rel_output
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR),
+                                 stdin=subprocess.DEVNULL, timeout=180)
+    except subprocess.TimeoutExpired:
+        raise Exception("FFmpeg hatası: işlem zaman aşımına uğradı (180sn) - "
+                         "kaynak video bozuk olabilir veya arama noktasında sorun var.")
+
     if result.returncode != 0:
-        err = result.stderr
-        raise Exception(f"FFmpeg hatası: {err[-600:]}")
+        err = (result.stderr or "").strip() or "(ffmpeg boş hata döndürdü, dosya bozuk olabilir)"
+        raise Exception(f"FFmpeg hatası: {err[-800:]}")
+    if not os.path.exists(output_path) or os.path.getsize(output_path) < 1024:
+        raise Exception("FFmpeg hatası: çıktı dosyası oluşmadı veya boş "
+                         "(seçilen zaman aralığı video süresini aşıyor olabilir).")
 
 
 def create_single_webcam_layout(input_path, output_path, start_time, duration, webcam,
@@ -513,20 +536,30 @@ def create_single_webcam_layout(input_path, output_path, start_time, duration, w
     rel_input  = os.path.relpath(input_path,  BASE_DIR)
     rel_output = os.path.relpath(output_path, BASE_DIR)
 
-    # --- Kaynak video boyutları ---
+    # --- Kaynak video boyutları + toplam süre ---
     probe = subprocess.run(
         ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
-         '-show_entries', 'stream=width,height', '-of', 'json', rel_input],
+         '-show_entries', 'stream=width,height:format=duration', '-of', 'json', rel_input],
         capture_output=True, text=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL
     )
     orig_w, orig_h = 1920, 1080
+    total_duration = None
     try:
         info = json.loads(probe.stdout)
         if info.get('streams'):
             orig_w = info['streams'][0].get('width',  1920)
             orig_h = info['streams'][0].get('height', 1080)
+        if info.get('format', {}).get('duration'):
+            total_duration = float(info['format']['duration'])
     except Exception:
         pass
+
+    # --- start_time/duration video sınırlarını aşmasın (aşarsa ffmpeg 0 kare üretip takılabilir) ---
+    start_time = max(0, float(start_time))
+    duration = max(1, float(duration))
+    if total_duration and total_duration > 1:
+        start_time = min(start_time, max(0, total_duration - 1))
+        duration = min(duration, max(1, total_duration - start_time))
 
     # --- Webcam crop koordinatları (ROI yüzdeleri → piksel) ---
     x_pct = float(webcam.get('x',      0))
@@ -591,11 +624,17 @@ def create_single_webcam_layout(input_path, output_path, start_time, duration, w
         "[top][bottom]vstack=inputs=2[final]"
     )
 
+    # --- Hibrit arama: bozuk/HLS-birleştirilmiş dosyalarda decoder'ın takılmasını önler ---
+    SEEK_BUFFER = 3.0
+    pre_seek = max(0.0, start_time - SEEK_BUFFER)
+    accurate_offset = start_time - pre_seek
+
     cmd = [
-        'ffmpeg', '-y', '-nostdin',
-        '-ss', str(max(0, start_time)),
-        '-t',  str(duration),
+        'ffmpeg', '-y', '-nostdin', '-nostats', '-loglevel', 'error',
+        '-ss', str(pre_seek),
         '-i',  rel_input,
+        '-ss', str(accurate_offset),
+        '-t',  str(duration),
         '-filter_complex', filter_complex,
         '-map', '[final]',
         '-map', '0:a?',
@@ -609,20 +648,53 @@ def create_single_webcam_layout(input_path, output_path, start_time, duration, w
         rel_output
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR),
+                                 stdin=subprocess.DEVNULL, timeout=180)
+    except subprocess.TimeoutExpired:
+        raise Exception("FFmpeg hatası (tek kamera): işlem zaman aşımına uğradı (180sn) - "
+                         "kaynak video bozuk olabilir veya arama noktasında sorun var.")
+
     if result.returncode != 0:
-        raise Exception(f"FFmpeg hatası (tek kamera): {result.stderr[-600:]}")
+        err = (result.stderr or "").strip() or "(ffmpeg boş hata döndürdü, dosya bozuk olabilir)"
+        raise Exception(f"FFmpeg hatası (tek kamera): {err[-800:]}")
+    if not os.path.exists(output_path) or os.path.getsize(output_path) < 1024:
+        raise Exception("FFmpeg hatası (tek kamera): çıktı dosyası oluşmadı veya boş "
+                         "(seçilen zaman aralığı video süresini aşıyor olabilir).")
 
 
 def extract_game_only(input_path, output_path, start_time, duration):
     rel_input = os.path.relpath(input_path, BASE_DIR)
     rel_output = os.path.relpath(output_path, BASE_DIR)
-    
+
+    probe = subprocess.run(
+        ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'json', rel_input],
+        capture_output=True, text=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL
+    )
+    total_duration = None
+    try:
+        info = json.loads(probe.stdout)
+        if info.get('format', {}).get('duration'):
+            total_duration = float(info['format']['duration'])
+    except Exception:
+        pass
+
+    start_time = max(0, float(start_time))
+    duration = max(1, float(duration))
+    if total_duration and total_duration > 1:
+        start_time = min(start_time, max(0, total_duration - 1))
+        duration = min(duration, max(1, total_duration - start_time))
+
+    SEEK_BUFFER = 3.0
+    pre_seek = max(0.0, start_time - SEEK_BUFFER)
+    accurate_offset = start_time - pre_seek
+
     cmd = [
-        'ffmpeg', '-y', '-nostdin',
-        '-ss', str(start_time),
-        '-t', str(duration),
+        'ffmpeg', '-y', '-nostdin', '-nostats', '-loglevel', 'error',
+        '-ss', str(pre_seek),
         '-i', rel_input,
+        '-ss', str(accurate_offset),
+        '-t', str(duration),
         '-vf', (
             'scale=1080:1920:force_original_aspect_ratio=decrease,'
             'pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black'
@@ -638,10 +710,20 @@ def extract_game_only(input_path, output_path, start_time, duration):
         '-movflags', '+faststart',
         rel_output
     ]
-    
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL)
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR),
+                                 stdin=subprocess.DEVNULL, timeout=180)
+    except subprocess.TimeoutExpired:
+        raise Exception("Video üretim hatası: işlem zaman aşımına uğradı (180sn) - "
+                         "kaynak video bozuk olabilir veya arama noktasında sorun var.")
+
     if result.returncode != 0:
-        raise Exception(f"Video üretim hatası: {result.stderr[-500:]}")
+        err = (result.stderr or "").strip() or "(ffmpeg boş hata döndürdü, dosya bozuk olabilir)"
+        raise Exception(f"Video üretim hatası: {err[-800:]}")
+    if not os.path.exists(output_path) or os.path.getsize(output_path) < 1024:
+        raise Exception("Video üretim hatası: çıktı dosyası oluşmadı veya boş "
+                         "(seçilen zaman aralığı video süresini aşıyor olabilir).")
 
 
 @app.route('/api/download/<filename>')
