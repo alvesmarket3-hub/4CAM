@@ -99,6 +99,7 @@ def download_video():
             
             process = subprocess.Popen(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
                 universal_newlines=True, cwd=str(BASE_DIR)
             )
             
@@ -121,7 +122,7 @@ def download_video():
                            'format=duration,size', '-show_streams',
                            '-select_streams', 'v:0',
                            '-of', 'json', rel_output]
-                info_result = subprocess.run(info_cmd, capture_output=True, text=True, cwd=str(BASE_DIR))
+                info_result = subprocess.run(info_cmd, capture_output=True, text=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL)
                 duration = 0
                 width = 0
                 height = 0
@@ -174,16 +175,16 @@ def extract_preview():
         rel_img = os.path.relpath(img_path, BASE_DIR)
         
         cmd_img = [
-            'ffmpeg', '-y', '-ss', str(timestamp),
+            'ffmpeg', '-y', '-nostdin', '-ss', str(timestamp),
             '-i', rel_video, '-vframes', '1', '-q:v', '1',
             '-vf', 'scale=iw:ih',
             rel_img
         ]
-        subprocess.run(cmd_img, capture_output=True, check=True, cwd=str(BASE_DIR))
+        subprocess.run(cmd_img, capture_output=True, check=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL)
         
         dim_cmd = ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
                    '-show_entries', 'stream=width,height', '-of', 'json', rel_video]
-        dim_result = subprocess.run(dim_cmd, capture_output=True, text=True, cwd=str(BASE_DIR))
+        dim_result = subprocess.run(dim_cmd, capture_output=True, text=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL)
         width, height = 1920, 1080
         try:
             dim_info = json.loads(dim_result.stdout)
@@ -226,7 +227,7 @@ def analyze_video():
             
             cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
                    '-of', 'json', rel_video]
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR))
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL)
             duration = float(json.loads(result.stdout)['format']['duration'])
             
             jobs[job_id]["message"] = "Ses analizi yapılıyor..."
@@ -235,9 +236,9 @@ def analyze_video():
             audio_path = TEMP_FOLDER / f"{job_id}.wav"
             rel_audio = os.path.relpath(audio_path, BASE_DIR)
             
-            cmd = ['ffmpeg', '-y', '-i', rel_video, '-vn', '-acodec', 'pcm_s16le',
+            cmd = ['ffmpeg', '-y', '-nostdin', '-i', rel_video, '-vn', '-acodec', 'pcm_s16le',
                    '-ar', '16000', '-ac', '1', rel_audio]
-            subprocess.run(cmd, capture_output=True, cwd=str(BASE_DIR))
+            subprocess.run(cmd, capture_output=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL)
             
             jobs[job_id]["progress"] = 60
             jobs[job_id]["message"] = "Viral anlar tespit ediliyor..."
@@ -382,7 +383,7 @@ def create_perfect_layout(input_path, output_path, start_time, duration, webcams
     probe = subprocess.run(
         ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
          '-show_entries', 'stream=width,height', '-of', 'json', rel_input],
-        capture_output=True, text=True, cwd=str(BASE_DIR)
+        capture_output=True, text=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL
     )
     orig_w, orig_h = 1920, 1080
     try:
@@ -467,7 +468,7 @@ def create_perfect_layout(input_path, output_path, start_time, duration, webcams
     filter_complex = ";".join(parts)
 
     cmd = [
-        'ffmpeg', '-y',
+        'ffmpeg', '-y', '-nostdin',
         '-ss', str(max(0, start_time)),
         '-t',  str(duration),
         '-i',  rel_input,
@@ -488,7 +489,7 @@ def create_perfect_layout(input_path, output_path, start_time, duration, webcams
         rel_output
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR))
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL)
     if result.returncode != 0:
         err = result.stderr
         raise Exception(f"FFmpeg hatası: {err[-600:]}")
@@ -516,7 +517,7 @@ def create_single_webcam_layout(input_path, output_path, start_time, duration, w
     probe = subprocess.run(
         ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
          '-show_entries', 'stream=width,height', '-of', 'json', rel_input],
-        capture_output=True, text=True, cwd=str(BASE_DIR)
+        capture_output=True, text=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL
     )
     orig_w, orig_h = 1920, 1080
     try:
@@ -591,7 +592,7 @@ def create_single_webcam_layout(input_path, output_path, start_time, duration, w
     )
 
     cmd = [
-        'ffmpeg', '-y',
+        'ffmpeg', '-y', '-nostdin',
         '-ss', str(max(0, start_time)),
         '-t',  str(duration),
         '-i',  rel_input,
@@ -608,7 +609,7 @@ def create_single_webcam_layout(input_path, output_path, start_time, duration, w
         rel_output
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR))
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL)
     if result.returncode != 0:
         raise Exception(f"FFmpeg hatası (tek kamera): {result.stderr[-600:]}")
 
@@ -618,7 +619,7 @@ def extract_game_only(input_path, output_path, start_time, duration):
     rel_output = os.path.relpath(output_path, BASE_DIR)
     
     cmd = [
-        'ffmpeg', '-y',
+        'ffmpeg', '-y', '-nostdin',
         '-ss', str(start_time),
         '-t', str(duration),
         '-i', rel_input,
@@ -638,7 +639,7 @@ def extract_game_only(input_path, output_path, start_time, duration):
         rel_output
     ]
     
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR))
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(BASE_DIR), stdin=subprocess.DEVNULL)
     if result.returncode != 0:
         raise Exception(f"Video üretim hatası: {result.stderr[-500:]}")
 
